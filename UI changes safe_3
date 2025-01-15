@@ -1,0 +1,145 @@
+import { Text, View, Image, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { AntDesign } from '@expo/vector-icons';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+
+const CreatorProfileScreen = () => {
+	const [imageGridData, setImageGridData] = useState([]);
+    const [loading, setLoading] = useState(true);
+	const { id, thumbnailUrl, username, bio } = useLocalSearchParams();
+	const transformResponse = (original: { reelId: any; thumbnailUrl: any; }) => {
+		return {
+		  id: original.reelId, 
+		  url: original.thumbnailUrl,
+		};
+	  };
+	
+	  const fetchCreators = async (creatorId: any) => {
+		try {
+		  const resp = await axios.get(`https://zlzq6ogfz7.execute-api.ap-south-1.amazonaws.com/reelsByUser/${creatorId}`);
+		  const reels = resp.data.reels.map(transformResponse);
+		  setImageGridData(reels);
+		} catch (error) {
+		  console.error("Error fetching posts:", error);
+		  Alert.alert('Something went wrong. Please check your connection and try again.');
+		} finally {
+		  setLoading(false);
+		}
+	  };
+
+	  useEffect(() => {
+		fetchCreators(id);
+	  }, [id]);
+
+	// [
+	// 	{		url:'https://img.jakpost.net/c/2019/09/03/2019_09_03_78912_1567484272._large.jpg',
+	// 	id:10004
+	// }
+	// ];
+
+	  const renderImageGrid = ({ item }) => (
+		<Pressable onPress={() => {
+				router.replace({
+				pathname: '/(tabs)/[id]',
+				params: { id:item.id},
+				});
+			}
+		}>
+		  <View>
+			<Image source={{ uri: item.url }} style={styles.gridImage} />
+		  </View>
+		</Pressable>
+	  );
+
+	  if (loading) {
+		return (
+		  <View style={styles.loadingContainer}>
+			<Text>Loading...</Text>
+		  </View>
+		);
+	  }
+
+	return (
+		<View style={styles.container}>
+			<Stack.Screen options={{  headerShown: false }} />
+
+			<View style={styles.arrow}>
+				<Pressable onPress={() => router.dismissAll()} style={{ padding: 8 }}>
+					<AntDesign name="arrowleft" size={20} color="white" />
+				</Pressable>
+			</View>
+						
+			<Image source={{ uri: thumbnailUrl }} style={styles.profileImage} />
+			<Text style={styles.username}>{username}</Text>
+			<Text style={styles.bio}>{bio}</Text>
+			<View style={styles.separator} />
+		<FlatList
+			data={imageGridData}
+			renderItem={renderImageGrid}
+			keyExtractor={(item, index) => index.toString()}
+			numColumns={3}
+			style={styles.imageGrid}
+		/>
+	</View>
+	);
+
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+	backgroundColor: '#000',
+  },
+  profileImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
+  username: {
+	color: "white", 
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 8,
+  },
+  bio: {
+	color: "white", 
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+  separator: {
+    height: 1,
+    width: '80%',
+    backgroundColor: '#ccc',
+    marginVertical: 16,
+  },
+  imageGrid: {
+    marginTop: 16,
+  },
+  gridImage: {
+    width: 110,
+    height: 200,
+    margin: 2,
+    borderRadius: 2,
+  },
+  arrow:{
+	flexDirection: 'row',
+	justifyContent: 'space-between',
+	alignItems: 'center',
+	width: '100%',
+	padding: 16,
+	position: 'absolute',
+	top: 0,
+	zIndex: 10,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+	  },
+});
+
+export default CreatorProfileScreen;
